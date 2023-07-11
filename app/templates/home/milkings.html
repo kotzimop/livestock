@@ -1,0 +1,286 @@
+{% extends "layouts/base.html" %} {% import "bootstrap/utils.html" as utils %}
+{% block title %} Milking Dashboard {% endblock %}
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %} {% block content %}
+
+<div class="row">
+  <div class="col text-center">
+    <a href="{{ url_for('admin.add_milking') }}" class="btn btn-default btn-lg">
+      <i class="fa fa-plus"></i>
+      Νέα Γαλακτομέτρηση
+    </a>
+    <a href="{{ url_for('admin.stop_period') }}" class="btn btn-danger btn-lg">
+      <i class="fa fa-stop"></i>
+      Τέλος Γαλακτομέτρησης
+    </a>
+
+    <button
+      type="button"
+      class="btn btn-success btn-circle btn-lg"
+      data-toggle="modal"
+      data-target="#milkings_per_animal_modal"
+      id="btn-modal1"
+    >
+      <i class="fas fa-database"></i>
+      Γαλακτομέτρηση Ζώου
+    </button>
+    <button
+      type="button"
+      class="btn btn-success btn-circle btn-lg"
+      data-toggle="modal"
+      data-target="#milkings_per_date_modal"
+      id="btn-modal2"
+    >
+      <i class="fa fa-calendar"></i>
+      Γαλακτομέτρηση Ανα Ημερομηνία
+    </button>
+  </div>
+  {{ utils.flashed_messages() }}
+</div>
+
+<!-- Modal for milking per Date -->
+<div
+  class="modal fade"
+  id="milkings_per_date_modal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="editModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form method="post" action="{{ url_for('admin.list_milkings_per_date') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="editModalLabel">
+            Επιλογή Ημερομηνίας Γαλακτομέτρησης
+          </h4>
+          <button type="button" class="close" data-dismiss="modal">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <label>
+            Enter the date:
+            <input id="select_year" type="date" name="selected_day" />
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-dismiss="modal">
+            <i class="fas fa-times" style="margin-right: 5px"></i> Ακύρωση
+          </button>
+          <button
+            id="select_by_date"
+            type="submit"
+            name="submit"
+            class="btn btn-success"
+          >
+            <i class="fas fa-location-arrow" style="margin-right: 5px"></i>
+            Αποστολή
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal for milking per Animal -->
+<div
+  class="modal fade"
+  id="milkings_per_animal_modal"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="editModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form
+      method="post"
+      action="{{ url_for('admin.list_milkings_per_animal') }}"
+    >
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="editModalLabel">Επιλογή Ζώου</h4>
+          <button type="button" class="close" data-dismiss="modal">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <label>
+            Αριθμός Ενωτίου:
+            <input id="selected_animal" type="text" name="selected_animal" />
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-dismiss="modal">
+            <i class="fas fa-times" style="margin-right: 5px"></i> Ακύρωση
+          </button>
+          <button
+            id="select_by_animal"
+            type="submit"
+            name="submit"
+            class="btn btn-success"
+          >
+            <i class="fas fa-location-arrow" style="margin-right: 5px"></i>
+            Αποστολή
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if milkings %}
+<table class="table">
+  <thead>
+    <tr>
+      <th class="text-center">#</th>
+      <th>Ενωτιο</th>
+      <th>Ποσοτητα</th>
+      <th>Ημερομηνια</th>
+      <th class="text-right">Ενεργειες</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for milking in milkings %}
+    <tr>
+      <td class="text-center">{{ milking.id }}</td>
+      <td>
+        <a href="{{ url_for('admin.animal_card',id=milking.animal_id) }}"
+          >{{milking.ear_tag }}</a
+        >
+      </td>
+      <td>{{ milking.amount }}</td>
+      <td>{{ milking.date_recorded }}</td>
+      <td class="td-actions text-right">
+        <a
+          href="{{ url_for('admin.edit_milking',id=milking.id) }}"
+          class="btn btn-info btn-sm btn-icon"
+        >
+          <i class="fas fa-edit"></i>
+        </a>
+        <a
+          id="delete-milking"
+          href="{{ url_for('admin.delete_milking',id=milking.id) }}"
+          class="btn btn-danger btn-sm btn-icon"
+          onclick="ConfirmDelete()"
+        >
+          <i class="fas fa-trash"></i>
+        </a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% elif milkings_per_date %}
+<table class="table">
+  <thead>
+    <tr>
+      <th class="text-center">#</th>
+      <th>Ενωτιο</th>
+      <th>Ποσοτητα</th>
+      <th>Ημερομηνια</th>
+      <th class="text-right">Ενεργειες</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for milking in milkings_per_date %}
+    <tr>
+      <td class="text-center">{{ milking.id }}</td>
+      <td>
+        <a href="{{ url_for('admin.animal_card',id=milking.animal_id) }}"
+          >{{milking.ear_tag }}</a
+        >
+      </td>
+      <td>{{ milking.amount }}</td>
+      <td>{{ milking.date_recorded }}</td>
+      <td class="td-actions text-right">
+        <a
+          href="{{ url_for('admin.edit_milking',id=milking.id) }}"
+          class="btn btn-info btn-sm btn-icon"
+        >
+          <i class="fas fa-edit"></i>
+        </a>
+        <a
+          id="delete-milking"
+          href="{{ url_for('admin.delete_milking',id=milking.id) }}"
+          class="btn btn-danger btn-sm btn-icon"
+          onclick="ConfirmDelete()"
+        >
+          <i class="fas fa-trash"></i>
+        </a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% elif milkings_per_animal %}
+<table class="table">
+  <thead>
+    <tr>
+      <th class="text-center">#</th>
+      <th>Ενωτιο</th>
+      <th>Ποσοτητα</th>
+      <th>Ημερομηνια</th>
+      <th class="text-right">Ενεργειες</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for milking in milkings_per_animal %}
+    <tr>
+      <td class="text-center">{{ milking.id }}</td>
+      <td>
+        <a href="{{ url_for('admin.animal_card',id=milking.animal_id) }}"
+          >{{milking.ear_tag }}</a
+        >
+      </td>
+      <td>{{ milking.amount }}</td>
+      <td>{{ milking.date_recorded }}</td>
+      <td class="td-actions text-right">
+        <a
+          href="{{ url_for('admin.edit_milking',id=milking.id) }}"
+          class="btn btn-info btn-sm btn-icon"
+        >
+          <i class="fas fa-edit"></i>
+        </a>
+        <a
+          id="delete-milking"
+          href="{{ url_for('admin.delete_milking',id=milking.id) }}"
+          class="btn btn-danger btn-sm btn-icon"
+          onclick="ConfirmDelete()"
+        >
+          <i class="fas fa-trash"></i>
+        </a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% else %}
+<div style="text-align: center">
+  <h3>Δεν υπάρχουν δεδομένα Γαλακτομέτρησης.</h3>
+  <hr class="intro-divider" />
+  {% endif %} {% endblock %} {% block javascripts %}
+  <script>
+    $(document).ready(function () {
+      $("#btn-modal").on("click", function () {
+        $("#editModal").modal("show");
+      });
+
+      $(".table").DataTable();
+    });
+  </script>
+
+  <script>
+    function ConfirmDelete() {
+      var x = confirm("Are you sure you want to delete?");
+      if (x) return true;
+      else event.preventDefault();
+    }
+  </script>
+
+  {% endblock %}
+</div>

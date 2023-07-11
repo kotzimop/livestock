@@ -1,0 +1,99 @@
+{% import "bootstrap/utils.html" as utils %}
+{% extends "layouts/base.html" %}
+
+{% block title %} Link Birth Form {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+
+        <form role="form" method="post" action="">
+        
+          {{ form.hidden_tag() }} 
+
+<!-- Views When you add a new animal record-->
+          {% if link_birth %}
+            <div class="card-header">
+              <h3 class="title">Νέα Γέννα</h3>
+              <br/>
+              {{ utils.flashed_messages() }}
+              <br/>
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+                  <div class="col-md-3 px-md-1">
+                    <div class="form-group">
+                      <label>Ενώτιο Γονέα</label>
+                      <input type="text" name="parent" class="form-control" value="{{parent.ear_tag}}" required>
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-3 px-md-1">
+                    <div class="form-group">
+                      <label>Ενώτιο Παιδιού</label>
+                      {{ form.child(class="form-control") }}
+                    </div>
+                  </div>
+                </div>
+            </div>
+
+<!-- Views when you edit an animal record. -->
+          {% else %}
+
+          <div class="card-header">
+            <h3 class="title">Edit Data</h3>
+            <br/>
+            {{ utils.flashed_messages() }}
+            <br/>
+            
+          </div>
+
+          
+
+          <div class="card-body">
+              <div class="row">
+                <div class="col-md-3 px-md-1">
+                  <div class="form-group">
+                    <label>Ear Tag</label>
+                    {{ form.child(class="form-control") }}
+                  </div>
+                </div>
+              </div>
+
+          </div>
+
+
+
+          {% endif %}
+
+            
+
+          <div class="card-footer">
+            {{ form.submit(class="btn btn-fill btn-primary") }}
+            <a href="{{ url_for('admin.list_animals') }}" class="btn btn-fill btn-danger">
+              <i class="fa fa-backward"></i>
+              Cancel
+          </a>
+          </div>
+            
+       
+
+
+
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}{% endblock javascripts %}

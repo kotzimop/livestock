@@ -1,0 +1,82 @@
+<div class="sidebar">
+  <div class="sidebar-wrapper">
+    <div class="logo"></div>
+
+    <ul class="nav">
+      {% if current_user.is_authenticated %} {% if current_user.is_admin %}
+
+      <li class="{% if 'index' in segment %} active {% endif %}">
+        <a href="{{ url_for('admin.list_data') }}">
+          <i class="tim-icons icon-chart-pie-36"></i>
+          <p>Κεντρικη</p>
+        </a>
+      </li>
+
+      <li class="{% if 'index' in segment %} active {% endif %}">
+        <a href="{{ url_for('admin.list_milkings') }}">
+          <i class="tim-icons icon-simple-add"></i>
+          <p>Γαλακτομετρηση</p>
+        </a>
+      </li>
+      <li class="{% if 'index' in segment %} active {% endif %}">
+        <a href="{{ url_for('admin.list_animals') }}">
+          <i class="tim-icons icon-coins"></i>
+          <p>Ζωα</p>
+        </a>
+      </li>
+      <li class="{% if 'index' in segment %} active {% endif %}">
+        <a href="{{ url_for('admin.stable') }}">
+          <i class="tim-icons icon-bank"></i>
+          <p>Σταβλος Συνοπτική</p>
+        </a>
+      </li>
+      <li class="{% if 'index' in segment %} active {% endif %}">
+        <a href="{{ url_for('admin.stable_return_custom_data') }}">
+          <i class="tim-icons icon-paper"></i>
+          <p>Σταβλος Αναλυτική</p>
+        </a>
+      </li>
+      <li class="{% if 'index' in segment %} active {% endif %}">
+        <a href="{{ url_for('admin.stable_calendar') }}">
+          <i class="tim-icons icon-calendar-60"></i>
+          <p>Γαλα Ανα Ημερα</p>
+        </a>
+      </li>
+      <li class="{% if 'index' in segment %} active {% endif %}">
+        <a href="{{ url_for('admin.list_alerts') }}">
+          <i class="tim-icons icon-alert-circle-exc"></i>
+          <p>Ειδοποιησεις</p>
+        </a>
+      </li>
+      <li class="{% if 'index' in segment %} active {% endif %}">
+        <a href="{{ url_for('admin.list_shipments') }}">
+          <i class="tim-icons icon-cart"></i>
+          <p>Παραδοσεις Γαλακτος</p>
+        </a>
+      </li>
+      <li class="{% if 'index' in segment %} active {% endif %}">
+        <a href="{{ url_for('admin.list_incomes') }}">
+          <i class="tim-icons icon-simple-add"></i>
+          <p>Εσοδα</p>
+        </a>
+      </li>
+      <li class="{% if 'index' in segment %} active {% endif %}">
+        <a href="{{ url_for('admin.list_expenses') }}">
+          <i class="tim-icons icon-simple-delete"></i>
+          <p>Εξοδα</p>
+        </a>
+      </li>
+      {% endif %}
+
+      <li>
+        <a href="{{ url_for('auth.logout') }}">
+          <i class="tim-icons icon-button-power"></i>
+          <p>Logout</p>
+        </a>
+      </li>
+      {% else %}
+      <li class="active"></li>
+      {% endif %}
+    </ul>
+  </div>
+</div>

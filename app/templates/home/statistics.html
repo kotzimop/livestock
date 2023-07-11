@@ -1,0 +1,188 @@
+{% extends "layouts/base.html" %}
+{% import "bootstrap/utils.html" as utils %}
+{% block title %} Animal Card {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+
+
+<div id="accordion">
+    <div class="card">
+        
+      <div class="card-header" id="headingOne">
+        <a href="{{ url_for('admin.animal_card', id=id) }}" class="btn btn-primary btn-lg">
+            <i class="fa fa-arrow-left"></i>
+            Πίσω στην Καρτέλα
+        </a>
+        <h5 class="mb-0">
+          <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+            Στατιστικά Ζώου
+          </button>
+        </h5>
+      </div>
+  
+      <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
+        <div class="card-body">
+          <form action="">
+          <label for="milking_periods"><h4>Επιλογή Γαλακτικής Περιόδου:</h4></label>
+          <select name="selected_period" id="selected_period">
+
+              {% for item in periods %}
+                  <option value="{{item}}">{{item}}</option>
+              {% endfor %}
+          </select>
+          </form>
+
+
+            <table id="table" class="table">
+                <thead>
+                  <tr>
+                    <th>ΗΜ/ΝΙΑ ΓΑΛΑΚΤΟΜΕΤΡΗΣΗΣ</th>
+                    <th>ΣΥΝΟΛΟ ΣΤΑΒΛΟΥ</th>
+                    <th>ΜΕΣΟΣ ΟΡΟΣ ΣΤΑΒΛΟΥ</th>
+                    <th>ΠΟΣΟΤΗΤΑ ΖΩΟΥ</th>
+                    <th>ΠΟΣΟΣΤΟ ΖΩΟΥ ΣΤΗΝ ΠΑΡΑΓΩΓΗ</th>
+                    <th>ΑΛΛΑΓΗ</th>
+                    <th>ΗΜΕΡΕΣ ΑΡΜΕΓΗΣ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                
+                </tbody>
+              </table>
+
+
+              <!-- <div style="text-align: center">
+              <h3> Δεν υπάρχουν δεδομένα Γαλακτομέτρησης. </h3>
+              <hr class="intro-divider"> -->
+
+
+        </div>
+      </div>
+    </div>
+   
+</div>
+
+
+
+
+
+{% endblock %}
+
+{% block javascripts %}
+
+<script>
+    $(document).ready(function() { 
+      var selected_period = document.getElementById('selected_period').value;
+      req = $.ajax({
+                url: '/admin/milkings/post_statistics/'+'{{id}}',
+                type: 'POST',
+                data: {selected_period:selected_period}
+            });
+
+      //Success Return data
+      req.done(function (data) {
+              console.log(data);
+              var trHTML = '';
+              $.each(data, function (i, item) {
+                console.log(i)
+                  trHTML += '<tr><td>' + item.date_of_milking + '</td>'+
+                    '<td>' + item.total_sum + '</td>'+
+                    '<td>' + item.total_avg + '</td>'+
+                    '<td>' + item.animal_sum + '</td>'+
+                    '<td>' + item.animal_percent + '</td>'+
+                    '<td>' + item.animal_change + '</td>'+
+                    '<td>' + item.milking_days + '</td>'+
+                    '</tr>';
+              });
+              $('#table').append(trHTML);
+
+              $('#table').dataTable({
+                order: [[6, 'asc']],
+                "rowCallback": function(row, data, index){
+              
+                if (parseFloat(data[3]) < parseFloat(data[2])) {
+                    $('td:eq(3)', row).html( '<span style="color:red">'+data[3]+'</span>' );
+                }
+                if (parseFloat(data[3]) > parseFloat(data[2])) {
+                    $('td:eq(3)', row).html( '<span style="color:green">'+data[3]+'</span>' );
+                }
+                if (parseFloat(data[5]) > 0) {
+                    $('td:eq(5)', row).html( '<span style="color:green">'+data[5]+' %'+'</span>' );
+                }
+                if (parseFloat(data[5]) < 0) {
+                    $('td:eq(5)', row).html( '<span style="color:red">'+data[5]+' %'+'</span>' );
+                }
+                }
+              });
+
+      });
+        
+    });
+
+    $('#selected_period').on('change', function () {
+        var selected_period = document.getElementById('selected_period').value;
+        $('#table').dataTable().fnDestroy(); // First destroy data tables as it cannot be initialized twice
+        $("#table tbody").empty(); // Then empty table body and keep headers
+        
+        
+          console.log('{{id}}')
+          req = $.ajax({
+              url: '../../milkings/post_statistics/'+'{{id}}',
+              type: 'POST',
+              data: {selected_period:selected_period}
+          });
+
+          //Success Return data
+          req.done(function (data) {
+              console.log(selected_period)
+              console.log(data);
+              
+              var trHTML = '';
+              $.each(data, function (i, item) {
+                console.log(i)
+                  trHTML += '<tr><td>' + item.date_of_milking + '</td>'+
+                    '<td>' + item.total_sum + '</td>'+
+                    '<td>' + item.total_avg + '</td>'+
+                    '<td>' + item.animal_sum + '</td>'+
+                    '<td>' + item.animal_percent + '</td>'+
+                    '<td>' + item.animal_change + '</td>'+
+                    '<td>' + item.milking_days + '</td>'+
+                    '</tr>';
+              });
+             
+              $('#table').append(trHTML);
+              
+              $('#table').dataTable({
+                
+                order: [[6, 'asc']],
+                "rowCallback": function(row, data, index){
+              
+                if (parseFloat(data[3]) < parseFloat(data[2])) {
+                    $('td:eq(3)', row).html( '<span style="color:red">'+data[3]+'</span>' );
+                }
+                if (parseFloat(data[3]) > parseFloat(data[2])) {
+                    $('td:eq(3)', row).html( '<span style="color:green">'+data[3]+'</span>' );
+                }
+                if (parseFloat(data[5]) > 0) {
+                    $('td:eq(5)', row).html( '<span style="color:green">'+data[5]+' %'+'</span>' );
+                }
+                if (parseFloat(data[5]) < 0) {
+                    $('td:eq(5)', row).html( '<span style="color:red">'+data[5]+' %'+'</span>' );
+                }
+                }
+
+              });
+
+
+
+            });
+      });
+
+</script>
+
+
+{% endblock %}

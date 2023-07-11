@@ -1,0 +1,218 @@
+{% extends "layouts/base.html" %}
+{% import "bootstrap/utils.html" as utils %}
+{% block title %} Animal Dashboard {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+<div class="row">
+    <div class="col text-center">
+        <a href="{{ url_for('admin.add_animal') }}" class="btn btn-default btn-lg">
+                <i class="fa fa-plus"></i>
+                Προσθήκη Ζώου
+        </a>
+        <a href="{{ url_for('admin.list_inactive_animals') }}" class="btn btn-danger btn-lg">
+            <i class="fa fa-list"></i>
+            Ανενεργά Ζώα
+        </a>
+        <button
+            type="button"
+            class="btn btn-success btn-circle btn-lg"
+            data-toggle="modal"
+            data-target="#animal_per_birth_date"
+            id="btn-modal1"
+            >
+            <i class="fas fa-database"></i>
+            Ζώα Ανα Τοκετό
+        </button>
+        <button
+            type="button"
+            class="btn btn-info btn-circle btn-lg"
+            data-toggle="modal"
+            data-target="#animal_per_alert"
+            id="btn-modal2"
+            >
+            <i class="fas fa-database"></i>
+            Ζώα Ανα Ειδοποιηση
+        </button>
+    
+    </div>
+    {{ utils.flashed_messages() }}
+</div>
+
+<!-- Modal for milking per Date -->
+<div
+  class="modal fade"
+  id="animal_per_birth_date"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="editModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form method="post" action="{{ url_for('admin.list_animal_per_birth_date') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="editModalLabel">Επιλογή Ημερομηνίας Τοκετού
+          </h4>
+          <button type="button" class="close" data-dismiss="modal">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+            <label>
+                Αρχική Ημ/νία:
+                <input id="start_date" type="date" name="start_date">
+            </label>
+            <label>
+              Τελική Ημ/νία:
+              <input id="end_date" type="date" name="end_date">
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-dismiss="modal">
+            <i class="fas fa-times" style="margin-right:5px"></i> Ακύρωση
+          </button>
+          <button id="select_by_date" type="submit" name="submit" class="btn btn-success">
+            <i class="fas fa-location-arrow " style="margin-right:5px"></i> Αποστολή
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal for animal per Alert -->
+<div
+  class="modal fade"
+  id="animal_per_alert"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="editModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form method="post" action="{{ url_for('admin.animals_per_alert_view') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="editModalLabel">Επιλογή Ειδοποίησης
+          </h4>
+          <button type="button" class="close" data-dismiss="modal">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <select name ="alertSelect">
+            <option value="" disabled="disabled"  style="display:none" selected="selected">Επιλέξτε Ειδοποίηση</option>
+            {% for alert in alerts %}
+            <option value="{{alert.id}}">{{alert.name}}</option>
+            {% endfor %}
+            
+        </select>
+            
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-dismiss="modal">
+            <i class="fas fa-times" style="margin-right:5px"></i> Ακύρωση
+          </button>
+          <button id="select_by_alert" type="submit" name="submit" class="btn btn-success">
+            <i class="fas fa-location-arrow " style="margin-right:5px"></i> Αποστολή
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+    
+{% if animals %}
+<table id="data" class="table">
+    <thead>
+      <tr>
+        <th>Id</th>
+        <th>Ενωτιο</th>
+        <th>Ημερομηνια Γεννησης</th>
+        <th>Ειδοποιησεις</th>
+        <th>Γεννες</th>
+        <th>Καρτελα Ζωου</th>
+        <th>Ενεργειες</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+{% else %}
+<div style="text-align: center">
+<h3> Δεν έχετε εισάγει ζώα στη βάση. </h3>
+<hr class="intro-divider">
+{% endif %}
+
+{% endblock %}
+
+{% block javascripts %}
+
+<script>
+
+    $(document).ready(function () {
+      
+
+      $('#data').DataTable({
+
+        ajax: {url: '../../admin/animals/per_alert/'+'{{alert_id}}'},
+        
+        serverSide: true,
+        columns: [
+          {data: 'id'},
+          {data: 'ear_tag'},
+          {data: 'date_of_birth'},
+          {
+            "mData": null,
+            "bSortable": false,
+            "mRender": function(data, type, full) {
+                return '<a class="btn btn-danger btn-sm btn-icon" href=/admin/alerts/link/' + data['id'] + '>' + '<i class="fas fa-exclamation-triangle"></i>' + '</a>';
+        
+            }
+          },
+          {
+            "mData": null,
+            "bSortable": false,
+            "mRender": function(data, type, full) {
+                return '<a class="btn btn-success btn-sm btn-icon" href=/admin/birth/' + data['id'] + '>' + '<i class="fas fa-user-plus"></i>' + '</a>';
+        
+            }
+          },
+          {
+            "mData": null,
+            "bSortable": false,
+            "mRender": function(data, type, full) {
+                return '<a class="btn btn-primary btn-sm btn-icon" href=/admin/animal/card/' + data['id'] + '>' + '<i class="fas fa-file-alt"></i>' + '</a>';
+        
+            }
+          },
+          {
+            "mData": null,
+            "class": 'td-actions text-right',
+            "bSortable": false,
+            "mRender": function(data, type, full) {
+                return '<a class="btn btn-info btn-sm btn-icon" href=/admin/animals/edit/' + data['id'] + '>' + '<i class="fas fa-edit"></i>' + '</a>' + ' '+
+                '<a class="btn btn-danger btn-sm btn-icon" onclick="ConfirmDelete()" href=/admin/animals/delete/' + data['id'] + '>' + '<i class="fas fa-trash"></i>' + '</a>' ;
+        
+            }
+          }
+        ],
+      });
+    });
+
+    function ConfirmDelete()
+    {
+      var x = confirm("Are you sure you want to delete?");
+      if (x)
+        return true;
+      else
+        event.preventDefault()
+    }
+     
+</script>
+
+
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "layouts/base.html" %}
+{% import "bootstrap/utils.html" as utils %}
+{% block title %} Animal Dashboard {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+<div class="row">
+    <div class="col text-center">
+        <a href="{{ url_for('admin.list_animals') }}" class="btn btn-default btn-lg">
+            <i class="fa fa-check-square"></i>
+            Ενεργά Ζώα
+        </a>
+    </div>
+    {{ utils.flashed_messages() }}
+</div>
+    
+{% if animals %}
+<table id="data" class="table">
+    <thead>
+      <tr>
+        <th>Id</th>
+        <th>Ενωτιο</th>
+        <th>Ημερομηνια Γεννησης</th>
+        <th>Ειδοποιησεις</th>
+        <th>Γεννες</th>
+        <th>Καρτελα Ζωου</th>
+        <th>Ενεργειες</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+{% else %}
+<div style="text-align: center">
+<h3> Δεν υπάρχουν ανενεργά ζώα στη βάση. </h3>
+<hr class="intro-divider">
+{% endif %}
+
+{% endblock %}
+
+{% block javascripts %}
+
+<script>
+
+    $(document).ready(function () {
+      
+      $('#data').DataTable({
+
+        ajax: {url: '../../admin/api/data/'+'{{animal_status}}'},
+        
+        serverSide: true,
+        columns: [
+          {data: 'id'},
+          {data: 'ear_tag'},
+          {data: 'date_of_birth'},
+          {
+            "mData": null,
+            "bSortable": false,
+            "mRender": function(data, type, full) {
+                return '<a class="btn btn-danger btn-sm btn-icon" href=/admin/alerts/link/' + data['id'] + '>' + '<i class="fas fa-exclamation-triangle"></i>' + '</a>';
+        
+            }
+          },
+          {
+            "mData": null,
+            "bSortable": false,
+            "mRender": function(data, type, full) {
+                return '<a class="btn btn-success btn-sm btn-icon" href=/admin/birth/' + data['id'] + '>' + '<i class="fas fa-user-plus"></i>' + '</a>';
+        
+            }
+          },
+          {
+            "mData": null,
+            "bSortable": false,
+            "mRender": function(data, type, full) {
+                return '<a class="btn btn-primary btn-sm btn-icon" href=/admin/animal/card/' + data['id'] + '>' + '<i class="fas fa-file-alt"></i>' + '</a>';
+        
+            }
+          },
+          {
+            "mData": null,
+            "class": 'td-actions text-right',
+            "bSortable": false,
+            "mRender": function(data, type, full) {
+                return '<a class="btn btn-info btn-sm btn-icon" href=/admin/animals/edit/' + data['id'] + '>' + '<i class="fas fa-edit"></i>' + '</a>' + ' '+
+                '<a class="btn btn-warning btn-sm btn-icon data-toggle="tooltip" data-placement="top" title="Ενεργοποίηση Ζώου" " onclick="ConfirmDelete()" href=/admin/animals/reactivate/' + data['id'] + '>' + '<i class="fas fa-thumbs-up"></i>' + '</a>' ;
+        
+            }
+          }
+        ],
+      });
+    });
+
+    function ConfirmDelete()
+    {
+      var x = confirm("Είστε βέβαιοι οτι θέλετε να ενεργοποιήσετε το ζώο?");
+      if (x)
+        return true;
+      else
+        event.preventDefault()
+    }
+     
+</script>
+
+
+{% endblock %}

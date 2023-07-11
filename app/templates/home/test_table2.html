@@ -1,0 +1,151 @@
+{% extends "layouts/base.html" %} {% import "bootstrap/utils.html" as utils %}
+{% block title %} Milking Dashboard {% endblock %}
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %} {% endblock stylesheets %} {% block content %}
+
+<div class="col-md-12">
+  <div class="card">
+    <div class="card-header">
+      <blockquote class="blockquote mb-0">
+        <h2 class="card-title">Συνοπτικός Πίνακας Γαλακτοπαραγωγής Στάβλου</h2>
+
+        <label for="milking_period">Επιλογή Γαλακτικής Περιόδου:</label>
+
+        <select name="milking_period" id="milking_period">
+          {% for item in available_milking_periods %}
+          <option value="{{item}}">{{item}}</option>
+          {% endfor %}
+        </select>
+        <input
+          style="margin-left: 15px"
+          type="checkbox"
+          id="status"
+          class="status"
+          name="status"
+          value="status"
+          checked
+        />
+        <label for="status"> Ανενεργά Ζώα</label><br />
+      </blockquote>
+    </div>
+
+    <div class="card-body">
+      <table id="example" class="table">
+        <thead>
+          <tr>
+            <th>ID Ζωου</th>
+            <th>Ενωτιο</th>
+            <th>Ποσοτητα</th>
+            <th>ΗΜ ΓΑΛΑ/ΓΩΓΗΣ</th>
+            <th>Μεση Γαλα/γωγη</th>
+            <th>ΒΟΧ</th>
+            <th>ΑΡΧΗ</th>
+            <th>ΤΕΛΟΣ</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block javascripts %}
+
+<script>
+  const receivedData = [];
+
+  const createTable = function (data) {
+    var table = $('#example').DataTable({
+      data: data,
+      columns: [
+        { data: 'animal_id' },
+        {
+          data: 'ear_tag',
+
+          fnCreatedCell: function (nTd, sData, oData, iRow, iCol) {
+            $(nTd).html(
+              "<a href='../admin/animal/card/" +
+                oData.animal_id +
+                "'>" +
+                oData.ear_tag +
+                '</a>'
+            );
+          },
+        },
+        { data: 'total_milk' },
+        { data: 'days_milked' },
+        { data: 'average_milk' },
+        { data: 'animal_box' },
+        { data: 'start_date' },
+        { data: 'end_date' },
+      ],
+    });
+  };
+
+  $(document).ready(function () {
+    $.ajax({
+      type: 'POST',
+      data: JSON.stringify({
+        selected_period: Math.abs($('#milking_period option:selected').text()),
+      }),
+      url: "{{ url_for('admin.stable_all_animals') }}",
+
+      success: function (response) {
+        for (const record of response.data) {
+          receivedData.push(record);
+        }
+
+        createTable(response.data);
+      },
+    });
+
+    // Change milking period
+    $('#milking_period').on('change', function () {
+      //Send request to server
+      req = $.ajax({
+        type: 'POST',
+        data: JSON.stringify({
+          selected_period: Math.abs(
+            $('#milking_period option:selected').text()
+          ),
+        }),
+        url: "{{ url_for('admin.stable_all_animals') }}",
+      });
+
+      // Receive Response
+      req.done(function (response) {
+        receivedData.length = 0; // Empty prior data
+        for (const record of response.data) {
+          receivedData.push(record);
+        }
+        // Checkbox checked as new request has been sent
+        $('.status').prop('checked', true);
+
+        // Clear table from previous data
+        $('#example').DataTable().clear();
+        $('#example').DataTable().destroy();
+
+        createTable(response.data);
+      });
+    });
+
+    // Remove inactive animals
+    $('input:checkbox.status').click(function () {
+      if (!$(this).is(':checked')) {
+        const onlyActiveAnimals = receivedData.filter(
+          animal => animal.status === true
+        );
+        $('#example').DataTable().clear();
+        $('#example').DataTable().destroy();
+        createTable(onlyActiveAnimals);
+      } else {
+        $('#example').DataTable().clear();
+        $('#example').DataTable().destroy();
+
+        createTable(receivedData);
+      }
+    });
+  });
+</script>
+
+{% endblock %}

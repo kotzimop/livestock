@@ -1,0 +1,624 @@
+{% extends "layouts/base.html" %} {% import "bootstrap/utils.html" as utils %}
+{% block title %} Dashboard {% endblock %}
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}
+<style>
+  .line-chart {
+    animation: fadeIn 600ms cubic-bezier(0.57, 0.25, 0.65, 1) 1 forwards;
+    opacity: 0;
+    max-width: 800px;
+    width: 100%;
+  }
+
+  .aspect-ratio {
+    height: 0;
+    padding-bottom: 50%;
+  }
+
+  @keyframes fadeIn {
+    to {
+      opacity: 1;
+    }
+  }
+
+  .mtd {
+    display: inline-block;
+    margin: 10px 20px;
+  }
+
+  #doughnut {
+    width: 50%;
+    height: 50%;
+  }
+
+  ul.doughnut-legend {
+    margin-left: 0;
+    height: 40px;
+  }
+
+  .chart-legend {
+    margin-top: 40px;
+  }
+
+  .chart-legend li {
+    display: inline-block;
+    font-size: 20px;
+    text-transform: uppercase;
+    margin-right: 20px;
+  }
+
+  .chart-legend li span {
+    display: inline-block;
+    position: relative;
+    width: 26px;
+    height: 22px;
+    top: 4px;
+    margin-right: 8px;
+  }
+
+  #chartjs-tooltip {
+    opacity: 1;
+    position: absolute;
+    background: none;
+    color: #ffffff;
+    font-size: 40px;
+    padding: 3px;
+  }
+
+  #chartjs-tooltip.below {
+    -webkit-transform: translate(-50%, 0);
+    transform: translate(-50%, 0);
+  }
+
+  #chartjs-tooltip.below:before {
+    border: solid;
+    border-color: #111 transparent;
+    border-color: rgba(255, 255, 255, 0.8) transparent;
+    border-width: 0 8px 8px 8px;
+    bottom: 1em;
+    content: '';
+    display: block;
+    left: 50%;
+    position: absolute;
+    z-index: 99;
+    -webkit-transform: translate(-50%, -100%);
+    transform: translate(-50%, -100%);
+  }
+
+  #chartjs-tooltip.above {
+    -webkit-transform: translate(-50%, -100%);
+    transform: translate(-50%, -100%);
+  }
+
+  #chartjs-tooltip.above:before {
+    border: solid;
+    border-color: #111 transparent;
+    border-color: rgba(255, 255, 255, 0.8) transparent;
+    border-width: 8px 8px 0 8px;
+    bottom: 1em;
+    content: '';
+    display: block;
+    left: 50%;
+    top: 100%;
+    position: absolute;
+    z-index: 99;
+    -webkit-transform: translate(-50%, 0);
+    transform: translate(-50%, 0);
+  }
+</style>
+
+{% endblock stylesheets %} {% block content %}
+
+<!-- ROW 1 -->
+<div class="row">
+  <div class="col-12">
+    <div class="card card-chart">
+      <div class="card-header">
+        <div class="row">
+          <div class="col-sm-6 text-left">
+            <h5 class="card-category">Ανα Χρονική Στιγμή</h5>
+            <h2 class="card-title">Γαλακτομέτρηση</h2>
+
+            <form action="">
+              <label for="milking_periods">Επιλογή Γαλακτικής Περιόδου:</label>
+              <select name="milking_period" id="milking_period">
+                {% for item in milking_periods %}
+                <option value="{{item}}">{{item}}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-area" style="height: 50vh">
+          <canvas id="income" height="90vh"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROW 2 -->
+<div class="row">
+  <div class="col-lg-4">
+    <div class="card card-chart">
+      <div class="card-header">
+        <h5 class="card-category">Ανα Χρονική Στιγμή</h5>
+        <h2 class="card-title">Γαλακτομέτρηση</h2>
+      </div>
+      <div class="card-body">
+        <canvas id="doughnut-chart" width="10vh" height="8vh"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card card-chart">
+      <div class="card-header">
+        <h5 class="card-category">Κατά Έτος</h5>
+        <h2 class="card-title">Γαλακτομέτρηση</h2>
+
+        <form action="">
+          <label for="cars">Επιλογή Έτους:</label>
+          <select name="year" id="year">
+            {% for item in years %}
+            <option value="{{item}}">{{item}}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+      <div class="card-body">
+        <div class="line-chart">
+          <div class="aspect-ratio">
+            <canvas id="chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROW 3 -->
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card card-chart">
+      <div class="card-header">
+        <h5 class="card-category">Ανα Γαλακτική Περίοδο</h5>
+        <h2 class="card-title">Συνολικό Γάλα</h2>
+      </div>
+      <div class="card-body">
+        <canvas id="total_milk_progress" width="10vh" height="8vh"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card card-chart">
+      <div class="card-header">
+        <h5 class="card-category">Ανα Γαλακτική Περίοδο</h5>
+        <h2 class="card-title">Αριθμός Ζώων</h2>
+      </div>
+      <div class="card-body">
+        <div class="card-body">
+          <canvas
+            id="total_num_of_animals_progress"
+            width="10vh"
+            height="8vh"
+          ></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block javascripts %}
+
+<script>
+  var year = document.getElementById('year').value;
+  var selected_period_for_analytical_milking =
+    document.getElementById('milking_period').value;
+
+  var total_milk_min_value = 0;
+  var total_milk_max_value = 0;
+
+  var chart = document.getElementById('chart').getContext('2d');
+  gradient_milking = chart.createLinearGradient(0, 0, 0, 450);
+  gradient_shipment = chart.createLinearGradient(0, 0, 0, 450);
+  // HTML for canvas method
+  gradient_milking.addColorStop(0, 'rgba(255, 0,0, 0.5)');
+  gradient_milking.addColorStop(0.5, 'rgba(255, 0, 0, 0.25)');
+  gradient_milking.addColorStop(1, 'rgba(255, 0, 0, 0)');
+
+  gradient_shipment.addColorStop(0, 'rgba(0, 165, 100, 0.5)');
+  gradient_shipment.addColorStop(0.5, 'rgba(0, 165, 100, 0.25)');
+  gradient_shipment.addColorStop(1, 'rgba(0, 165, 100, 0)');
+
+  // Object that contains data, labels and format of data depicted
+  var data = {
+    labels: [],
+    datasets: [
+      {
+        label: 'Υπολογιζόμενο Γάλα',
+        backgroundColor: gradient_milking,
+        pointBackgroundColor: 'white',
+        borderWidth: 1, //border of line
+        borderColor: '#911215',
+        data: [],
+      },
+      {
+        label: 'Παραδοτέο Γάλα',
+        backgroundColor: gradient_shipment,
+        pointBackgroundColor: 'white',
+        borderWidth: 1, //border of line
+        borderColor: '#074220',
+        data: [],
+      },
+    ],
+  };
+
+  var options = {
+    responsive: true, //Resizes the chart canvas when its container does
+    maintainAspectRatio: true, //Maintain the original canvas aspect ratio (width / height) when resizing
+    animation: {
+      easing: 'easeInOutQuad',
+      duration: 520,
+    },
+    scales: {
+      xAxes: [
+        {
+          gridLines: {
+            color: 'rgba(200, 200, 200, 0.05)', // Grey color
+            lineWidth: 1,
+          },
+        },
+      ],
+      yAxes: [
+        {
+          gridLines: {
+            color: 'rgba(200, 200, 200, 0.08)',
+            lineWidth: 1,
+          },
+        },
+      ],
+    },
+    elements: {
+      line: {
+        tension: 0.4,
+      },
+    },
+    legend: {
+      display: true,
+    },
+    point: {
+      backgroundColor: 'white',
+    },
+    tooltips: {
+      titleFontFamily: 'Open Sans',
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      titleFontColor: 'red',
+      caretSize: 5,
+      cornerRadius: 2,
+      xPadding: 10,
+      yPadding: 10,
+    },
+  };
+
+  // bar chart data
+  var barData = {
+    labels: [],
+    datasets: [
+      {
+        label: 'ΠΡΩΙ',
+        backgroundColor: '#48A497',
+        borderColor: '#48A4D1',
+        data: [],
+      },
+      {
+        label: 'ΜΕΣΗΜΕΡΙ',
+        backgroundColor: 'rgba(73,188,170,0.4)',
+        borderColor: 'rgba(72,174,209,0.4)',
+        data: [],
+      },
+      {
+        label: 'ΒΡΑΔΥ',
+        backgroundColor: 'rgba(0,160,110,0.4)',
+        borderColor: 'rgba(0,160,110,0.1)',
+        data: [],
+      },
+    ],
+  };
+  // get bar chart canvas
+  var income = document.getElementById('income').getContext('2d');
+  // draw bar chart
+  var lineChart = new Chart(income, {
+    type: 'bar',
+    data: barData,
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+
+  // Create chart instance
+  var chartInstance = new Chart(chart, {
+    type: 'line',
+    data: data,
+    options: options,
+  });
+
+  var doughnutInstance = new Chart(document.getElementById('doughnut-chart'), {
+    type: 'doughnut',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: 'Population (millions)',
+          backgroundColor: [
+            '#3e95cd',
+            '#8e5ea2',
+            '#3cba9f',
+            '#e8c3b9',
+            '#c45850',
+          ],
+          data: [],
+        },
+      ],
+    },
+    options: {
+      title: {
+        display: true,
+        text: 'Γαλακτομέτρηση ανα Χρονική στιγμή',
+      },
+    },
+  });
+
+  // get bar chart canvas
+  var total_milk_chart = document
+    .getElementById('total_milk_progress')
+    .getContext('2d');
+  // draw bar chart
+  var milkChart = new Chart(total_milk_chart, {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: 'Γάλα σε Τόνους',
+          data: [],
+          backgroundColor: 'rgba(255, 99, 132, 0.2)',
+          borderColor: 'rgba(255,99,132,1)',
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      scales: {
+        yAxes: [
+          {
+            ticks: {
+              beginAtZero: false,
+            },
+          },
+        ],
+        xAxes: [
+          {
+            barPercentage: 0.2,
+          },
+        ],
+      },
+    },
+  });
+
+  // get bar chart canvas
+  var total_animals_chart = document
+    .getElementById('total_num_of_animals_progress')
+    .getContext('2d');
+  // draw bar chart
+  var animalsChart = new Chart(total_animals_chart, {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: 'Αριθμός Ζώων',
+          data: [],
+          backgroundColor: 'rgba(117, 99, 132, 0.2)',
+          borderColor: 'rgba(14,99,132,1)',
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      scales: {
+        yAxes: [
+          {
+            ticks: {
+              beginAtZero: false,
+            },
+          },
+        ],
+        xAxes: [
+          {
+            barPercentage: 0.2,
+          },
+        ],
+      },
+    },
+  });
+
+  console.log(total_milk_min_value);
+
+  // On changwe year for Data
+  $(document).ready(function () {
+    // Income Chart Initial Request
+    req = $.ajax({
+      url: '/admin/api/new_admin_v2',
+      type: 'POST',
+      data: {
+        year: year,
+        selected_period_for_analytical_milking:
+          selected_period_for_analytical_milking,
+      },
+    });
+
+    //Success Return data
+    req.done(function (data) {
+      for (let i = 0; i < data.milk_per_month['amount'].length; i++) {
+        chartInstance.data.datasets[0].data.push(
+          data.milk_per_month['amount'][i]
+        );
+        chartInstance.data.labels.push(data.milk_per_month['labels'][i]);
+      }
+      for (let i = 0; i < data.shipment_per_month['amount'].length; i++) {
+        chartInstance.data.datasets[1].data.push(
+          data.shipment_per_month['amount'][i]
+        );
+      }
+
+      for (let i = 0; i < data.percent_list['percent_of_time'].length; i++) {
+        doughnutInstance.data.datasets[0].data.push(
+          data.percent_list['percent_of_time'][i]
+        );
+        doughnutInstance.data.labels.push(data.percent_list['milking_time'][i]);
+      }
+
+      for (
+        let i = 0;
+        i < data.total_milk_progress['milking_period'].length;
+        i++
+      ) {
+        milkChart.data.datasets[0].data.push(
+          data.total_milk_progress['amount'][i]
+        );
+        animalsChart.data.datasets[0].data.push(
+          data.total_milk_progress['num_of_animals'][i]
+        );
+
+        milkChart.data.labels.push(
+          `Γαλ. Περ. ${data.total_milk_progress['milking_period'][i]}`
+        );
+
+        animalsChart.data.labels.push(
+          `Γαλ. Περ. ${data.total_milk_progress['milking_period'][i]}`
+        );
+      }
+
+      for (
+        let i = 0;
+        i < data.milking_per_milking_time_and_date['dates'].length;
+        i++
+      ) {
+        // Change format of dates
+        var date = new Date(data.milking_per_milking_time_and_date['dates'][i]);
+        lineChart.data.datasets[0].data.push(
+          data.milking_per_milking_time_and_date['morning'][i]
+        );
+
+        lineChart.data.datasets[1].data.push(
+          data.milking_per_milking_time_and_date['midday'][i]
+        );
+        lineChart.data.datasets[2].data.push(
+          data.milking_per_milking_time_and_date['evening'][i]
+        );
+        // Extract time from format
+        lineChart.data.labels.push(date.toISOString().substring(0, 10));
+      }
+
+      // $('#date_from_last_milking').append("<a href='#' class='remove-box'>"+'<p>Τελευταία Γαλακτομέτρηση: </p>'+data.date_from_last_milking+"</a>");
+      // $('#date_from_last_milking').append("<a href='#' class='remove-box'>"+'<p>Τελευταία Γαλακτομέτρηση: </p>'+data.active_milked_animals+"</a>");
+
+      chartInstance.update();
+      doughnutInstance.update();
+      lineChart.update();
+      milkChart.update();
+      animalsChart.update();
+    });
+
+    $('#year').on('change', function () {
+      var year = document.getElementById('year').value;
+
+      req = $.ajax({
+        url: '/admin/api/new_admin_v2',
+        type: 'POST',
+        data: {
+          year: year,
+          selected_period_for_analytical_milking:
+            selected_period_for_analytical_milking,
+        },
+      });
+
+      req.done(function (data) {
+        chartInstance.data.datasets[0].data = [];
+        chartInstance.data.datasets[1].data = [];
+        chartInstance.data.labels = [];
+
+        for (let i = 0; i < data.milk_per_month['amount'].length; i++) {
+          chartInstance.data.datasets[0].data.push(
+            data.milk_per_month['amount'][i]
+          );
+          chartInstance.data.labels.push(data.milk_per_month['labels'][i]);
+        }
+        for (let i = 0; i < data.shipment_per_month['amount'].length; i++) {
+          chartInstance.data.datasets[1].data.push(
+            data.shipment_per_month['amount'][i]
+          );
+        }
+        chartInstance.update();
+      });
+    });
+
+    // Update milkings diagram on milking_period change
+    $('#milking_period').on('change', function () {
+      var selected_period_for_analytical_milking =
+        document.getElementById('milking_period').value;
+
+      req = $.ajax({
+        url: '/admin/api/new_admin_v2',
+        type: 'POST',
+        data: {
+          year: year,
+          selected_period_for_analytical_milking:
+            selected_period_for_analytical_milking,
+        },
+      });
+
+      req.done(function (data) {
+        lineChart.data.datasets[0].data = [];
+        lineChart.data.datasets[1].data = [];
+        lineChart.data.datasets[2].data = [];
+        lineChart.data.labels = [];
+
+        for (
+          let i = 0;
+          i < data.milking_per_milking_time_and_date['dates'].length;
+          i++
+        ) {
+          // Change format of dates
+          var date = new Date(
+            data.milking_per_milking_time_and_date['dates'][i]
+          );
+          lineChart.data.datasets[0].data.push(
+            data.milking_per_milking_time_and_date['morning'][i]
+          );
+
+          lineChart.data.datasets[1].data.push(
+            data.milking_per_milking_time_and_date['midday'][i]
+          );
+          lineChart.data.datasets[2].data.push(
+            data.milking_per_milking_time_and_date['evening'][i]
+          );
+          // Extract time from format
+          lineChart.data.labels.push(date.toISOString().substring(0, 10));
+        }
+        lineChart.update();
+      });
+    });
+  });
+</script>
+
+{% endblock %}

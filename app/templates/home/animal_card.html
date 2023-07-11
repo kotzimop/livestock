@@ -1,0 +1,625 @@
+{% extends "layouts/base.html" %}
+{% import "bootstrap/utils.html" as utils %}
+{% block title %} Animal Card {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+{% if result %}
+{{ utils.flashed_messages() }}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <blockquote class="blockquote mb-0">
+                    <h2 class="card-title">Γενικές Πληροφορίες</h2>
+                    {% if current_milking_period|length ==0 %}
+                    <p><span style="color: rgb(241, 19, 19);">Δεν υπάρχει ενεργή γαλακτική περίοδος</span></p>
+                    {% elif current_milking_period|length==1 %}
+                    <p>Ενεργή Γαλακτική Περίοδος : <span style="color: rgb(252, 252, 252);">{{current_milking_period[0].milking_period}}</span></p>
+                    {%endif%}
+                    {% if result.animal_box %}
+                    <p>Αριθμός Box: <span style="color: rgb(243, 13, 231);">{{result.animal_box}}</span></p>
+                    {% else%}
+                    <p>Αριθμός Box: <span style="color: rgb(243, 13, 231);">Άγνωστος</span></p>
+                    {%endif%}
+                    
+                    
+                </blockquote>
+            </div>
+
+            <div class="card-body">
+                <p class="card-text">Id Ζώου: {{result.id}}</p>
+                <p class="card-text">Ενώτιο Ζώου: {{result.ear_tag}}</p>
+                <p class="card-text">Ημερομηνία Γέννησης: {{result.date_of_birth}}</p>
+                {% if parent_id %}
+                    <p class="card-text">Γονέας: <a href="{{ url_for('admin.animal_card',id=parent_id) }}">{{parent_tag}}</a></p>
+                {% else %}
+                    <p class="card-text">Γονέας: Άγνωστος Γονέας</p>
+                {% endif %}
+                {% if result.last_birth == 'Δεν υπάρχει ενεργή γέννα.' or result.last_birth == 'Πολλαπλές Ενεργές Γέννες' %}
+                    <p class="card-text">Τελευταία Γέννα: <span style="color: red;">{{result.last_birth}}</span></p>
+                {%else%}
+                    <p class="card-text">Τελευταία Γέννα: <span style="color: rgb(43, 221, 43);">{{result.last_birth}}</span></p>
+
+                {% endif %}
+                <a href="javascript:history.back()" class="btn btn-primary">Επιστροφή</a>
+                <button
+                type="button"
+                class="btn btn-warning btn-circle btn-md"
+                data-toggle="modal"
+                data-target="#animal_new_milking_period"
+                id="btn-modal1"
+                >
+                <i class="fas fa-database"></i>
+                Νέα Γέννα
+              </button>
+              <button
+                type="button"
+                class="btn btn-default btn-circle btn-md"
+                data-toggle="modal"
+                data-target="#animal_set_box_number"
+                id="btn-modal1"
+                >
+                <i class="fas fa-th"></i>
+                Αριθμός Box
+              </button>
+            </div>
+          </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <blockquote class="blockquote mb-0">
+                    <h2 class="card-title">Στοιχεία Γαλακτομέτρησης</h2>
+                </blockquote>
+            </div>
+
+            <div class="card-body">
+             
+                {% if result.milkings|sum()|round(2, 'floor') > 0 %}
+                <p class="card-text">Συνολική Γαλακτομέτρηση:
+                    {{ result.milkings|sum()|round(2, 'floor')/1000 }} 
+                liters. </p>
+                {%else%}
+                <p class="card-text">Συνολική Γαλακτομέτρηση:
+                    {{ result.milkings|sum()|round(2, 'floor') }}
+                liters. </p>
+                {% endif %}
+
+                {% if result.milkings %}
+                <p class="card-text">Μέγιστη Γαλακτομέτρηση:  {{ result.milkings|max/1000 }} liters.</p>
+                {%else%}
+                <p class="card-text">Μέγιστη Γαλακτομέτρηση:  0 liters.</p>
+                {% endif %}
+                 
+              <p class="card-text">Αριθμός Γαλακτομετρήσεων: {{ result.number_of_milkings }}</p>
+              
+              <a href="{{ url_for('admin.list_milkings_per_animal_id',id=result.id) }}" class="btn btn-success">Γαλακτομέτρηση</a>
+              <a href="{{ url_for('admin.statistics', id=result.id) }}" class="btn btn-info">Στατιστικά</a>
+              <button
+                type="button"
+                class="btn btn-default btn-circle btn-md"
+                data-toggle="modal"
+                data-target="#animal_stop_current_milking_period"
+                id="btn-modal1"
+                >
+                <i class="fas fa-stop"></i>
+                Τέλος Γαλ/σης
+              </button>
+
+            </div>
+          </div>
+    </div>
+
+</div>
+
+
+<div class="row">
+    
+    <!--  Milking Diagram Section -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="row">
+      
+                        <div class="col-md-6">
+                            <h2 class="card-title">Διάγραμμα Γαλακτομέτρησης</h2>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="selectBox">
+                                <label for="milking_periods">Επιλογή Γαλακτικής Περιόδου:</label>
+                                <select id="yearSelect">
+                                    {% for item in milking_periods %}
+                                    <option value="{{item.milking_period|int}}">{{item.milking_period|int}}</option>
+                                    {% endfor %}
+                                    
+                                </select>
+                            </div>
+                        </div>
+                </div>  
+                
+            </div>
+
+            <div class="card-body">
+                <canvas id="myChart"></canvas>
+            </div>
+
+        </div>
+    </div>
+
+    <!--  Stats Section -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <blockquote class="blockquote mb-0">
+                    <h2 class="card-title">Στατιστικά</h2>
+                    <h6 class="card-subtitle mb-2 text-muted">Γαλα σε Λιτρα</h6>
+                </blockquote>
+            </div>
+
+            <div class="card-body">
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th><span style="color: rgb(255, 78, 202, 1);">Γαλ.Περιοδος</span></th>
+                            <th><span style="color: rgb(255, 78, 202, 1);">Μετρημενο Γαλα</span></th>
+                            <th><span style="color: rgb(255, 78, 202, 1);">Υπολογιζομενο Γαλα</span></th>
+                            <th><span style="color: rgb(255, 78, 202, 1);">Ημ.Αρμεγής</span></th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in range(stats.periods|length)  %}
+                        <tr>
+                            <td>{{stats.periods[item]}}</td>
+                            <td>{{stats.recorded_amounts[item]}}</td>
+                            <td>{{stats.estimated_amounts[item]}}</td>
+                            <td>{{stats.milked_days[item]}}</td>
+                            
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+               
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<div class="row">
+
+    <!-- Alert Section -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <blockquote class="blockquote mb-0">
+                    <h2 class="card-title">Λίστα Ειδοποιήσεων</h2>
+                    {% if inactive_animal %}
+                    <p><span style="color: rgb(241, 19, 19);">Ανενεργό Ζώο</span></p>
+                    {% else %}
+                    <p><span style="color: rgb(58, 230, 6);">Ενεργό  Ζώο</span></p>
+                    {% endif %}
+                </blockquote>
+            </div>
+
+            <div class="card-body">
+                
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            
+                            <th><span style="color: rgb(255, 78, 202, 1);">Ειδοποιηση</span></th>
+                            <th><span style="color: rgb(255, 78, 202, 1);">Ημερομηνια</span></th>
+                            <th class="text-right"><span style="color: rgb(255, 78, 202, 1);">Διαγραφη</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in result.alerts %}
+                        <tr>
+                            <td>{{item.alert}}</td>
+                            {%if item.date %}
+                                <td>{{item.date}}</td>
+                            {% else %}
+                                <td>Άγνωστη Ημερομηνία</td>
+                            {% endif %}
+                            <td class="td-actions text-right">
+                                <a href="{{ url_for('admin.delete_animal_alert',id=item.id) }}" class="btn btn-danger btn-sm btn-icon" onclick="ConfirmDelete()">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+               
+            </div>
+
+        </div>
+    </div>
+
+    <!--  Children Section -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <blockquote class="blockquote mb-0">
+                    <h2 class="card-title">Πληροφορίες Παιδιών</h2>
+                </blockquote>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Ενωτιο Παιδιου</th>
+                            <th>Ημ/νια Γεννησης Παιδιου</th>
+                            <th>Καρτελα Παιδιου</th>
+                            <th class="text-right">Διαγραφη Γεννας</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        {% for item in range(result.children|length)  %}
+                        <tr>
+                            <td>{{result.children[item]}}</td>
+                            <td>{{result.children_birth[item]}}</td>
+                            <td><a href="{{ url_for('admin.animal_card',id=result.children_id[item]) }}">Καρτέλα</a></td>
+                            <td class="td-actions text-right">
+                                <a href="{{ url_for('admin.delete_birth',id=result.birth_id[item]) }}" class="btn btn-danger btn-sm btn-icon" onclick="ConfirmDelete()">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                             
+                
+                            </td>
+                        </tr>
+                        {% endfor %}
+            
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+    
+
+
+</div>
+
+    
+
+</div>
+
+<!-- Modal for adding new milking period -->
+<div
+  class="modal fade"
+  id="animal_new_milking_period"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="editModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form method="post" action="{{ url_for('admin.get_form_of_new_milking', parent_id=result.id) }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="editModalLabel">Επιλογή Ημερομηνίας Τοκετού Χωρίς Παιδί
+          </h4>
+          <button type="button" class="close" data-dismiss="modal">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+            <label>
+                Ημ/νία:
+                <input id="start_date" type="date" name="start_date" required>
+            </label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-dismiss="modal">
+            <i class="fas fa-times" style="margin-right:5px"></i> Ακύρωση
+          </button>
+          <button id="select_by_date" type="submit" name="submit" class="btn btn-success">
+            <i class="fas fa-location-arrow " style="margin-right:5px"></i> Αποστολή
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal for adding end of milking period -->
+<div
+  class="modal fade"
+  id="animal_stop_current_milking_period"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="editModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form method="post" action="{{ url_for('admin.stop_milking_period', parent_id=result.id) }}">
+      <div class="modal-content">
+        <div class="modal-header">
+            <h4 class="modal-title" id="editModalLabel">Επιλογή Ημερομηνίας τελευταίας μέρας αρμέγματος.
+            </h4>
+            <button type="button" class="close" data-dismiss="modal">
+                &times;
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <table class="table" style="background:linear-gradient(#1e1e2f,#1e1e24)">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Αρχη</th>
+                            <th>Τέλος</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in milking_periods %}
+                        <tr>
+                            <td>{{item.id}}</td>
+                            <td>{{item.start_of_milking_period}}</td>
+                            <td>{{item.end_of_milking_period}}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+               
+        
+            </div>
+            <div class="row">
+                <label>
+                    Ημ/νία:
+                    <input id="stop_date" type="date" name="stop_date" required>
+                </label>
+            </div>
+            <div class="row">
+         
+                <div class="selectBox">
+                    <label>
+                        ID:
+                    </label>
+                    <select id="select_milking_period_id" name="select_milking_period_id" required>
+                        <option value="">Επιλογή Περιόδου</option>
+                        {% for item in milking_periods %}
+                            {% if not item.end_of_milking_period %}
+                                <option value="{{item.id}}">{{item.id}}</option>
+                            {% endif %}
+                        {% endfor %}  
+                    </select>
+                </div>
+            </div>
+            
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-dismiss="modal">
+            <i class="fas fa-times" style="margin-right:5px"></i> Ακύρωση
+          </button>
+          <button id="select_by_date" type="submit" name="submit" class="btn btn-success">
+            <i class="fas fa-location-arrow " style="margin-right:5px"></i> Αποστολή
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal for adding animal box -->
+<div
+  class="modal fade"
+  id="animal_set_box_number"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="editModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form method="post" action="{{ url_for('admin.add_animal_box', animal_id=result.id) }}">
+      <div class="modal-content">
+        <div class="modal-header">
+            <h4 class="modal-title" id="editModalLabel">Επιλογή Box.
+            </h4>
+            <button type="button" class="close" data-dismiss="modal">
+                &times;
+            </button>
+        </div>
+        <div class="modal-body">
+            
+            <div class="row">
+                <label>Αριθμός Box:</label>
+                <select id="select_animal_box" name="select_animal_box" required style="margin-left: 10px;">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="None">Κανένα Box</option>
+
+                </select>
+            </div>
+
+            
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-dismiss="modal">
+            <i class="fas fa-times" style="margin-right:5px"></i> Ακύρωση
+          </button>
+          <button id="select_by_date" type="submit" name="submit" class="btn btn-success">
+            <i class="fas fa-location-arrow " style="margin-right:5px"></i> Αποστολή
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+    
+   
+
+{% endif %}
+
+{% endblock %}
+
+{% block javascripts %}
+
+
+<script>
+    var xValues = [];
+    var milkAmounts = [];
+    var stable_amounts = [];
+    const select_year = document.getElementById('yearSelect');
+    var selected_year = select_year.value
+    var animal_id = '{{result.id}}'
+    const ctx = document.getElementById('myChart').getContext('2d');
+    const myLineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Ζώο',
+                data: [],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 206, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(255, 159, 64, 0.2)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            },
+            {
+                
+                label: 'Στάβλος',
+                data: [],
+                backgroundColor: [
+                    'rgba(30, 130, 76, 0.2)'
+                    
+                ],
+                borderColor: [
+                    'rgba(46, 204, 113, 1)'
+                    
+                ],
+                borderWidth: 1
+
+            }
+        ]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                        display: true,
+                        ticks: {
+                            min: 0,
+                            max: 6,
+                            stepSize: 1,
+                            autoSkip: false
+                        }
+                        }]
+            }
+        }
+    });
+
+    function addData(chart, label, data) {
+                    chart.data.labels= xValues;
+                    chart.data.datasets[0].data = milkAmounts;
+                    chart.data.datasets[1].data = stable_amounts;
+
+                    chart.update();
+                }
+
+    $(document).ready(function () {
+        
+        req = $.ajax({
+                url: '../../updateChart',
+                type: 'POST',
+                data: { selected_year:selected_year, animal_id:animal_id}
+            });
+            req.done(function (data) {
+                console.log(data)
+                for(let i = 0; i < data['amounts'].length; i++){ 
+                    
+                    xValues.push(data['dates'][i]);
+                    
+                    milkAmounts.push(data['amounts'][i])
+                    stable_amounts.push(data['stable_amounts'][i])
+                    console.log(stable_amounts)
+                }
+                addData(myLineChart,xValues,milkAmounts)
+                console.log(milkAmounts);
+                
+            });
+                
+        
+
+
+        $('#yearSelect').on('change', function () {
+            var selected_year = select_year.value
+            var animal_id = '{{result.id}}'
+
+            req = $.ajax({
+                url: '../../updateChart',
+                type: 'POST',
+                data: { selected_year:selected_year, animal_id:animal_id}
+            });
+
+            req.done(function (data) {
+                xValues = []
+                milkAmounts = []
+
+                for(let i = 0; i < data.length; i++){
+                    
+                    xValues.push(data[i][3] + ' WeeK: ' + data[i][0]);                  
+                    milkAmounts.push(data[i][1])
+                }
+                addData(myLineChart,xValues,milkAmounts)               
+                console.log(milkAmounts);
+            });
+
+        });
+
+    });
+
+    
+</script>
+
+<script>
+
+    function ConfirmDelete()
+    {
+      var x = confirm("Are you sure you want to delete?");
+      if (x)
+        return true;
+      else
+        event.preventDefault()
+    }
+    
+    </script>
+
+
+
+{% endblock %}

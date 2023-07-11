@@ -1,0 +1,389 @@
+{% import "bootstrap/utils.html" as utils %} {% extends "layouts/base.html" %}
+{% block title %} Milking Form {% endblock %}
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %} {% endblock stylesheets %} {% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <form
+        id="milking_form"
+        name="milking_form"
+        role="form"
+        method="post"
+        action=""
+      >
+        {{ form.hidden_tag() }}
+
+        <!-- Views When you add a new animal record-->
+        {% if add_milking %}
+
+        <div class="card-header">
+          <h3 class="title">Εισαγωγή Δεδομένων</h3>
+          <br />
+          {{ utils.flashed_messages() }}
+          <br />
+        </div>
+
+        <div class="card-body" id="card-body">
+          {% for i in range(24) %}
+
+          <blockquote class="blockquote mb-0">
+            <h5 style="color: #ba54f5">Θέση Αρμεγής {{i+1}}</h5>
+            <div class="row">
+              <div class="col-md-12 px-md-1">
+                <input
+                  type="text"
+                  id="ear_tag{{i}}"
+                  name="ear_tag{{i}}"
+                  class="form-control ear_tag_cell"
+                  data="ear_tag_data"
+                  placeholder="Ενώτιο"
+                />
+                <div id="check{{i}}"></div>
+                <button
+                  id="add_milking_period{{i}}"
+                  class="btn btn-info btn-fab btn-icon btn-round"
+                  style="display: none"
+                >
+                  <i class="tim-icons icon-simple-add"></i>
+                </button>
+                <!-- {{ form.ear_tag(class="form-control", placeholder="Ενώτιο") }} -->
+              </div>
+
+              <div class="col-md-12 px-md-1">
+                <input
+                  type="text"
+                  id="amount{{i}}"
+                  name="amount{{i}}"
+                  class="form-control"
+                  placeholder="Ποσότητα"
+                />
+                <div id="amount{{i}}"></div>
+                <!-- {{ form.amount(class="form-control", placeholder="Ποσότητα") }} -->
+              </div>
+            </div>
+          </blockquote>
+          <br />
+
+          {% endfor %} {{form.box(class="form-control")}}
+        </div>
+
+        {% else %}
+
+        <div class="card-header">
+          <h3 class="title">Τροποποίηση Δεδομένων</h3>
+          <br />
+          {{ utils.flashed_messages() }}
+          <br />
+        </div>
+
+        <div class="card-body" id="card-body">
+          <div class="row" id="row1">
+            <div class="col-md-12 px-md-1">
+              <label
+                ><span style="color: rgba(255, 255, 255, 0.8)"
+                  >Ear Tag</span
+                ></label
+              >
+              <input
+                type="text"
+                name="ear_tag"
+                class="form-control"
+                value="{{parsed_ear_tag}}"
+                required
+              />
+              <!-- {{ form.ear_tag(class="form-control") }} -->
+            </div>
+
+            <div class="col-md-12 px-md-1">
+              <label
+                ><span style="color: rgba(255, 255, 255, 0.8)"
+                  >Amount</span
+                ></label
+              >
+              <input
+                type="text"
+                name="amount"
+                class="form-control"
+                value="{{parsed_amount}}"
+                required
+              />
+              <!-- {{ form.amount(class="form-control") }} -->
+            </div>
+          </div>
+        </div>
+
+        {% endif %}
+
+        <!-- <div class="card-footer">
+            <input type="submit" name="submit" class="btn btn-fill btn-primary">Υποβολή</input>
+          </div> -->
+
+        <div class="milking-form-footer">
+          {{ form.submit(class="btn btn-fill btn-primary") }}
+          <a
+            href="{{ url_for('admin.list_milkings') }}"
+            class="btn btn-fill btn-danger"
+          >
+            <i class="fa fa-backward"></i>
+            Ακύρωση
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- <button class="btn btn-fill btn-primary" type="submit" form="milking_form">Υποβολή</button> -->
+
+<!-- Modal for adding new milking period -->
+<div
+  class="modal fade"
+  id="animal_new_milking_period"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="editModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog" role="document">
+    <form id="new_birth_form" method="post" action="">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="editModalLabel">
+            Επιλογή Ημερομηνίας Τοκετού Χωρίς Παιδί
+          </h4>
+          <button type="button" class="close" data-dismiss="modal">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <label>
+            Ημ/νία:
+            <input id="start_date" type="date" name="start_date" required />
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-dismiss="modal">
+            <i class="fas fa-times" style="margin-right: 5px"></i> Ακύρωση
+          </button>
+          <button
+            id="select_by_date"
+            type="submit"
+            name="submit"
+            class="btn btn-success"
+          >
+            <i class="fas fa-location-arrow" style="margin-right: 5px"></i>
+            Αποστολή
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}
+
+<script>
+  var ear_tags = JSON.parse('{{ animals|safe }}');
+  const ear_tag_values = Object.values(ear_tags);
+  const elts = document.getElementsByClassName('ear_tag_cell');
+
+  // Prevent form from submit on press enter.
+  $('form').bind('keypress', function (e) {
+    if (e.keyCode == 13) {
+      e.preventDefault();
+    }
+  });
+
+  $(function () {
+    var scanned_ear_tags = [];
+
+    $('[id^=ear_tag]').change(function () {
+      var input = $(this).val(); // Get value of input field that changes its value
+      var text_result = this.nextElementSibling; // Get next sibling which is p tag that is empty
+      var milking_button = text_result.nextElementSibling;
+      var nextEarTag = $(this);
+      var check = scanned_ear_tags.indexOf(input) >= 0; // Check if ear_tag exists in this array so that no double scans allowed
+
+      if (input) {
+        $.post(
+          "{{ url_for('admin.check_milking') }}",
+          {
+            send: input,
+          },
+          function (data) {
+            // Check if parent exists
+            if (data.exists) {
+              // add scanned ear_tag to an array in order to check double scanned records
+              scanned_ear_tags.push(input);
+
+              $(text_result).empty();
+              $(text_result).append(
+                '<p style="color: #3cb371">Το ενώτιο υπάρχει στη βάση.</p>'
+              );
+
+              // Now that parent exists, check if they have children
+              if (data.children) {
+                $(milking_button).hide();
+                $(text_result).empty();
+                $(text_result).append(
+                  '<p style="color: #3cb371"> Το ζώο έχει ενεργή γαλακτική περίοδο.</p>'
+                );
+                Array.from(elts).forEach(function (elt) {
+                  elt.addEventListener('keyup', function (event) {
+                    // Number 13 is the "Enter" key on the keyboard
+                    if (event.keyCode === 13 && elt.value.length >= 15) {
+                      // Focus on the next sibling
+                      elts[+elt.id.replace('ear_tag', '') + 1].focus();
+                    }
+                  });
+                });
+                // elts[+nextEarTag[0].id.slice(-1) + 1].focus();
+
+                if (data.num_of_children > 1) {
+                  $(milking_button).hide();
+                  $(text_result).append(
+                    '<p style="color: #ff6347">ΠΡΟΣΟΧΗ!!! Το ζώο έχει πολλές ενεργές γαλακτικές περίοδους. Πάτε στην καρτέλα του και διορθώστε το!!!' +
+                      '<a href=../animal/card/' +
+                      data.animal_id +
+                      ' target="_blank"> Πατήστε Εδώ</a></p>'
+                  );
+                }
+
+                // Check if ear_tag has been scanned again
+                if (check === true) {
+                  $(text_result).empty();
+                  $(text_result).append(
+                    '<p style="color: #ff6347"> ΠΡΟΣΟΧΗ!!! Το ζώο έχει ήδη σκαναριστεί.</p>'
+                  );
+                  scanned_ear_tags.pop(); // remove last element in order for array to be as clean as possible
+                }
+              } else {
+                $(text_result).empty();
+                $(text_result).append(
+                  '<p style="color: #ff6347"> ΠΡΟΣΟΧΗ!!! Το ζώο δεν έχει ενεργή γαλακτική περίοδο.</p>'
+                );
+              }
+            }
+            // Parent does not exist.
+            else {
+              $(text_result).empty();
+              $(text_result).append(
+                '<p style="color: #ff6347">Το ενώτιο δεν υπάρχει στη βάση</p>'
+              );
+            }
+          }
+        ).done(function (data) {
+          if (data.exists && data.num_of_children == 0) {
+            $(milking_button).show();
+            $(milking_button)
+              .unbind('click')
+              .bind('click', function (event) {
+                event.preventDefault();
+                $('#animal_new_milking_period').modal('show');
+                // .off() for removing the submit event handler
+                $('#new_birth_form')
+                  .off()
+                  .on('submit', function (event) {
+                    event.preventDefault();
+                    var formData = {
+                      start_date: $('#start_date').val(),
+                    };
+
+                    $.ajax({
+                      type: 'POST',
+                      url:
+                        '../silent_not_have_child_insert_milking_period_table/' +
+                        data.animal_id,
+                      data: formData,
+                      dataType: 'json',
+                      encode: true,
+                    }).done(function (data) {
+                      // Empty form
+                      $('#new_birth_form')[0].reset();
+                      //Open modal
+                      $('#animal_new_milking_period').modal('toggle');
+                      // Empty previous message
+                      $(text_result).empty();
+                      // Hide button
+                      $(milking_button).hide();
+                      // Show new message
+                      $(text_result).append(
+                        '<p style="color: #3cb371">' + data + '</p>'
+                      );
+                    });
+                  });
+              });
+          }
+        });
+      }
+    });
+
+    $('[id^=amount]').change(function () {
+      var input = $(this).val(); // Get value of input field that changes its value
+      var text_result = this.nextElementSibling; // Get next sibling which is p tag that is empty
+
+      if (input > 3000) {
+        $(text_result).append(
+          '<p style="color: #ff6347"> Η ποσότητα για μια γαλακτομέτρηση είναι πολύ μεγάλη.</p>'
+        );
+      } else {
+        $(text_result).empty();
+      }
+    });
+  });
+
+  $(function () {
+    $('#milking_form').on('submit', function (e) {
+      for (i = 0; i < 24; i++) {
+        var tag = $('#ear_tag' + i).val();
+        var amount = $('#amount' + i).val();
+
+        if (tag) {
+          if (typeof amount !== 'undefined' && amount) {
+            $('#amount' + i)
+              .focus()
+              .css('border-color', '#2b3553');
+          } else if (amount.length > 4) {
+            e.preventDefault();
+            $('#amount' + i)
+              .focus()
+              .css('border-color', 'red');
+          } else {
+            e.preventDefault();
+            $('#amount' + i)
+              .focus()
+              .css('border-color', 'red');
+          }
+
+          var result = $.inArray(Number(tag), ear_tag_values);
+
+          if (Number(result) === -1) {
+            $('#ear_tag' + i)
+              .focus()
+              .css('border-color', 'red');
+
+            var result = 0;
+            e.preventDefault();
+          } else {
+            $('#ear_tag' + i)
+              .focus()
+              .css('border-color', '#2b3553');
+          }
+        }
+      }
+    });
+  });
+
+  $(document).ready(function () {
+    // $( ".alert" ).fadeOut( 8000, function() {
+    //   // Animation complete.
+    // });
+  });
+</script>
+
+{% endblock javascripts %}

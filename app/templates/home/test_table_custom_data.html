@@ -1,0 +1,183 @@
+{% extends "layouts/base.html" %} {% import "bootstrap/utils.html" as utils %}
+{% block title %} Milking Dashboard {% endblock %}
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %} {% endblock stylesheets %} {% block content %}
+
+<div class="col-md-12">
+  <div class="card">
+    <div class="card-header">
+      <blockquote class="blockquote mb-0">
+        <h2 class="card-title">Αναλυτικός Πίνακας Γαλακτοπαραγωγής Στάβλου</h2>
+
+        <label for="milking_period">Επιλογή Γαλακτικής Περιόδου:</label>
+
+        <select name="milking_period" id="milking_period">
+          {% for item in available_milking_periods %}
+          <option value="{{item}}">{{item}}</option>
+
+          {% endfor %}
+        </select>
+        <input
+          style="margin-left: 15px"
+          type="checkbox"
+          id="status"
+          class="status"
+          name="status"
+          value="status"
+          checked
+        />
+        <label for="status"> Ανενεργά Ζώα</label>
+
+        <button id="download" name="download" class="btn btn-sm btn-success">
+          <i class="fas fa-download"></i>
+          Download Excel
+        </button>
+      </blockquote>
+    </div>
+
+    <div class="card-body"></div>
+  </div>
+</div>
+<table id="example" class="table" style="width: 100%"></table>
+
+{% endblock %} {% block javascripts %}
+
+<script>
+  let receivedData = [];
+  let columns = [];
+  let longestValue = 0;
+
+  function createTable(data, response) {
+    columns.push(
+      { data: 'id', title: 'id' },
+      { data: 'ear_tag', title: 'ΕΝΩΤΙΟ' },
+      {
+        data: 'start_of_milking_period',
+        title: 'ΑΡΧΗ',
+      },
+      { data: 'animal_box', title: 'ΒΟΧ' }
+    );
+    for (let i = 0; i < response + 1; i++) {
+      columns.push({
+        data: `${i}`,
+        title: `${i + 1}`,
+        render: function (data, type, row, meta) {
+          if (!data) {
+            return 0 + ' | ' + 0 + ' | ' + 0;
+          }
+          // Sort column by sum
+          if (type === 'sort' || type === 'type') {
+            return data.sum;
+          }
+          return (
+            Number(data.sum) +
+            ' | ' +
+            Number(data.days) +
+            ' | ' +
+            Number(data.avg)
+          );
+        },
+      });
+    }
+    let dt = $('#example').DataTable({
+      data: data,
+      dom: 'Qlfrtip',
+      lengthMenu: [10, 25, 50, 75, 100],
+      columns: columns,
+      retrieve: true,
+    });
+  }
+
+  $(document).ready(function () {
+    $.ajax({
+      type: 'POST',
+      data: JSON.stringify({
+        selected_period: Math.abs($('#milking_period option:selected').text()),
+        download: false,
+      }),
+      url: "{{ url_for('admin.stable_custom_data') }}",
+
+      success: function (response) {
+        for (const record of response.data) {
+          receivedData.push(record);
+        }
+        longestValue = response.longest;
+        createTable(receivedData, response.longest);
+      },
+    });
+
+    $('#milking_period').on('change', function () {
+      //Send request to server
+      req = $.ajax({
+        type: 'POST',
+        data: JSON.stringify({
+          selected_period: Math.abs(
+            $('#milking_period option:selected').text()
+          ),
+          download: false,
+        }),
+        url: "{{ url_for('admin.stable_custom_data') }}",
+      });
+
+      // Receive Response
+      req.done(function (response) {
+        receivedData.length = 0; // Empty prior data
+        columns.length = 0;
+
+        for (const record of response.data) {
+          receivedData.push(record);
+        }
+        // Checkbox checked as new request has been sent
+        $('.status').prop('checked', true);
+
+        // Clear table from previous data
+        $('#example').DataTable().clear();
+        $('#example').DataTable().destroy();
+        $('#example tr').remove(); // Empty headers
+        longestValue = response.longest;
+        createTable(receivedData, response.longest);
+      });
+    });
+
+    // Remove inactive animals
+    $('input:checkbox.status').click(function () {
+      if (!$(this).is(':checked')) {
+        columns.length = 0;
+        const onlyActiveAnimals = receivedData.filter(
+          animal => animal.status === true
+        );
+        $('#example').DataTable().clear();
+        $('#example').DataTable().destroy();
+        $('#example tr').remove(); // Empty headers
+        createTable(onlyActiveAnimals, longestValue);
+      } else {
+        columns.length = 0;
+        $('#example').DataTable().clear();
+        $('#example').DataTable().destroy();
+        $('#example tr').remove(); // Empty headers
+        createTable(receivedData, longestValue);
+      }
+    });
+
+    $('#download').click(function () {
+      req = $.ajax({
+        type: 'POST',
+        data: JSON.stringify({
+          selected_period: Math.abs(
+            $('#milking_period option:selected').text()
+          ),
+          download: true,
+        }),
+        url: "{{ url_for('admin.stable_custom_data') }}",
+      });
+
+      req.done(function (response) {
+        window.location.href = '../download';
+      });
+    });
+    // var table = $('#example').DataTable({});
+  });
+</script>
+
+{% endblock %}

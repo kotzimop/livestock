@@ -1,0 +1,99 @@
+{% extends "layouts/base.html" %}
+{% import "bootstrap/utils.html" as utils %}
+{% block title %} Milking Dashboard {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}
+<style>
+.btn {
+    margin: 0px 10px; /* Add something like this */
+}
+.form-control {
+    margin: 0px 10px;
+}
+</style>
+
+{% endblock stylesheets %}
+
+{% block content %}
+
+
+
+{% if available_years %}
+<div class="row" style="padding:50px;">
+    <p><h1>Ημερόλογιο Γαλακτοπαραγωγής του Στάβλου</h1></p>
+    <div>
+        <div class="row" style="padding:20px;">
+            <form method="post" action="{{ url_for('admin.stable_calendar') }}" class="form-inline">
+                <div class="form-group">
+                  <label for="yearSelect" style="font-size: 15px; color: azure;"><b>Επιλογή Έτους : </b></label>
+                   <select class="form-control" id="yearSelect" name ="yearSelect" style="background-color: #525f7f; color: rgb(248, 247, 247)">
+                    {% for item in available_milking_years %}
+                    <option>{{item}}</option>
+                    {% endfor %}
+                    </select> 
+                    <button id="select_by_period" type="submit" name="submit" class="btn btn-success">
+                        <i class="fas fa-location-arrow "></i> Αποστολή
+                    </button>
+                </div>
+                
+
+              
+              </form>
+
+        </div>
+<table class="table">
+  <thead>
+      <tr>
+          <th>ΗΜΕΡΟΜΗΝΙΑ</th>
+          <th>ΠΟΣΟΤΗΤΑ ΣΕ ΛΙΤΡΑ</th>
+          <th>ΑΡΜΕΓΕΣ</th>
+          
+      </tr>
+  </thead>
+  <tbody>
+      {% for item in available_years %}
+      <tr>
+        
+          <td> {{ item.date_recorded }} </td>
+          <td> {{ (item.amount/1000)|round(2, 'floor') }} </td>
+          <td> {{ item.num_of_animals_milked }} </td>
+
+          
+      </tr>
+      {% endfor %}
+     
+  </tbody>
+</table>
+
+{% else %}
+<div style="text-align: center">
+<h3> Δεν υπάρχουν δεδομένα Γαλακτομέτρησης. </h3>
+<hr class="intro-divider">
+{% endif %}
+
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    $(document).ready(function() {    
+        console.log('{{available_years}}')
+        $('.table').DataTable({
+            "paging": true,
+            "orderClasses": false,
+            "deferRender": true
+        });
+    });
+
+</script>
+
+<script>
+
+
+    
+</script>
+
+
+
+
+{% endblock %}

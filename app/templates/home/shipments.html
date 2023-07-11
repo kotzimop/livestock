@@ -1,0 +1,79 @@
+{% extends "layouts/base.html" %}
+{% import "bootstrap/utils.html" as utils %}
+{% block title %} Alert Dashboard {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+<div class="row">
+    <div class="col text-center">
+        <a href="{{ url_for('admin.add_shipment') }}" class="btn btn-default btn-lg">
+            <i class="fa fa-plus"></i>
+            Προσθήκη Νέας Παράδοσης
+        </a>
+    </div>
+    {{ utils.flashed_messages() }}
+</div>
+    
+{% if shipments %}
+<table class="table">
+    <thead>
+        <tr>
+            <th class="text-center">#</th>
+            <th>Ποσο</th>
+            <th>Ημερομηνια</th>
+            <th class="text-right">Ενεργειες</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for shipment in shipments %}
+        <tr>
+            <td class="text-center"> {{ shipment.id }} </td>
+            <td> {{ shipment.amount }} </td>
+            <td> {{ shipment.date_recorded.strftime('%d-%m-%Y') }} </td>
+            <td class="td-actions text-right">
+                <a href="{{ url_for('admin.edit_shipment',id=shipment.id) }}" class="btn btn-info btn-sm btn-icon">
+                    <i class="fas fa-edit"></i>
+                </a>
+                <a id="delete-alert" href="{{ url_for('admin.delete_shipment', id=shipment.id) }}" class="btn btn-danger btn-sm btn-icon" onclick="ConfirmDelete()" >
+                    <i class="fas fa-trash"></i>
+                </a>
+
+            </td>
+        </tr>
+        {% endfor %}
+       
+    </tbody>
+</table>
+{% else %}
+<div style="text-align: center">
+<h3> Δεν έχουν εισαχθεί παραδόσεις γάλακτος. </h3>
+<hr class="intro-divider">
+{% endif %}
+
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    $(document).ready(function() {
+    $('.table').DataTable();
+} );
+
+</script>
+
+<script>
+
+    function ConfirmDelete()
+    {
+      var x = confirm("Are you sure you want to delete?");
+      if (x)
+        return true;
+      else
+        event.preventDefault()
+    }
+    
+    </script>
+
+
+{% endblock %}
